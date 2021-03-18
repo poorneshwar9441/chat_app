@@ -1,0 +1,95 @@
+import socket
+import threading
+import time
+
+
+class Client:
+	def __init__(self):
+		self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+		self.server_ip = "127.0.0.1"
+		self.Format = 'utf-8'
+		self.msg = []
+		self.prev_msg = []
+		print(self.server_ip)
+		try:
+			self.client.connect((self.server_ip,9999))#if server code not running then to save time just show error message,9999 is port num
+		except Exception as e:
+			print("server not available")
+
+
+
+	def ask_name(self):#ask name in gui calls ask name in client
+		self.send = self.name#send to server
+		self.client.send(self.send.encode(self.Format))#sent it to server in encoded form
+
+
+	def ask_room(self,code,value_room):
+		choice = int(code)#gets code from gui
+		val = value_room
+
+		print(choice,value_room)
+
+		if(choice == 1):#1 means creating room,choice coming from gui
+			print("infor")#used for debugging 
+			self.room_number = value_room
+			header = "header:1"#made to indicate to server whether user joining or creating room or 
+			self.client.send(header.encode(self.Format))#sending the header to the server
+			time.sleep(0.1)#for the header and join going at same time therefore to give delay
+			self.client.send(self.room_number.encode('utf-8'))
+			print("end for")#used for debugging
+
+		elif(choice == 2):#choice 2 for joining the room
+			self.room_number = value_room
+			header = "header:2"
+			self.client.send(header.encode(self.Format))
+			time.sleep(0.1)
+			self.client.send(self.room_number.encode('utf-8'))
+
+		else:
+			print("Not any thing")#this loop just to debug
+
+		value = self.client.recv(1024).decode('utf-8')#recieving value from server
+		#print(type(value))
+		print(value)
+
+		if((choice == 1) and (value == '0')):
+			print("room alredy exists")#therefore cant create new room
+			print("enter valid code")
+
+
+		elif((choice == 2) and (value == '0')):
+			print("room does not exists")
+			print("enter_valid code")
+
+
+
+		elif((choice == 1) and (value == '1')):#value 1 when in server success of joining
+			print(f"sucessfully created the room: {self.room_number}")
+
+		elif((choice == 2) and (value == '1')):
+			print(f"successfully entered the room {self.room_number}")
+
+
+
+
+
+	def send_msg(self,msg):#called from gui
+		self.client.send(msg.encode(self.Format))
+
+
+
+	def recv_msg(self):
+		while True:#infinite loop to recieve any amount
+			msg = self.client.recv(1024).decode(self.Format)
+			if(len(msg)>0):
+				for i in self.msg:
+					self.prev_msg  = i
+				self.msg.append(msg)#self msg contains 1 extra msg than prev msg
+				self.know = True#for debugging
+				print(f"{msg}")#just printed the message string
+
+
+
+	def make_thread(self):#make thread fn called from chat gui
+		self.thread1 = threading.Thread(target = self.recv_msg)
+		self.thread1.start()
